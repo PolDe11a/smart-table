@@ -25,11 +25,15 @@ function collectState() {
 
   const rowsPerPage = parseInt(state.rowsPerPage); // число строк на страницу
   const page = parseInt(state.page ?? 1); // текущая страница (по умолчанию 1)
+   const totalFrom = parseInt(state.totalFrom);
+    const totalTo = parseInt(state.totalTo);
 
   return {
     ...state,
     rowsPerPage,
     page,
+      totalFrom,
+        totalTo,
   };
 }
 
