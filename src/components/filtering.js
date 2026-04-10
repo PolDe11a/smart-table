@@ -3,7 +3,6 @@ import { createComparison, defaultRules } from "../lib/compare.js";
 // @todo: #4.3 — настроить компаратор
 const compare = createComparison(defaultRules);
 
-
 export function initFiltering(elements, indexes) {
   // @todo: #4.1 — заполнить выпадающие списки опциями
   Object.keys(indexes).forEach((elementName) => {
@@ -19,18 +18,25 @@ export function initFiltering(elements, indexes) {
 
   return (data, state, action) => {
     // @todo: #4.2 — обработать очистку поля
-    if (action && action.name === 'clear') {
-    const parent = action.parentElement;
-    const input = parent.querySelector('input');
+    if (action && action.name === "clear") {
+      const parent = action.parentElement;
+      const input = parent.querySelector("input");
 
-    if (input) {
-        input.value = '';
+      if (input) {
+        input.value = "";
+      }
+
+      state[action.dataset.field] = "";
     }
 
-    state[action.dataset.field] = '';
-}
-
     // @todo: #4.5 — отфильтровать данные используя компаратор
-    return data.filter(row => compare(row, state));
+    return data.filter((row) => {
+      const isMatch = compare(row, state);
+      const isGreaterThanFrom =
+        state.totalFrom === "" || row.total >= state.totalFrom;
+      const isLessThanTo = state.totalTo === "" || row.total <= state.totalTo;
+
+      return isMatch && isGreaterThanFrom && isLessThanTo;
+    });
   };
 }
