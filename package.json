@@ -10,5 +10,21 @@
   },
   "devDependencies": {
     "vite": "^6.0.5"
+  },
+  "description": "",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yandex-praktikum/smart-table.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/yandex-praktikum/smart-table/issues"
+  },
+  "homepage": "https://github.com/yandex-praktikum/smart-table#readme",
+  "dependencies": {
+    "axios": "^1.15.0"
   }
 }
