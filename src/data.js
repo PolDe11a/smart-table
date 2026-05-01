@@ -1,50 +1,90 @@
-import { makeIndex } from "./lib/utils.js";
-
-const BASE_URL = "https://webinars.webdev.education-services.ru/sp7-api";
-
 export function initData(sourceData) {
-  let sellers;
-  let customers;
-  let lastResult;
-  let lastQuery;
+  const getFullName = (person) => `${person.first_name} ${person.last_name}`;
 
-  const mapRecords = (data) =>
-    data.map((item) => ({
-      id: item.receipt_id,
-      date: item.date,
-      seller: sellers[item.seller_id],
-      customer: customers[item.customer_id],
-      total: item.total_amount,
-    }));
+  const sellers = Object.fromEntries(
+    sourceData.sellers.map((seller) => [seller.id, getFullName(seller)]),
+  );
+
+  const customers = Object.fromEntries(
+    sourceData.customers.map((customer) => [customer.id, getFullName(customer)]),
+  );
+
+  const mapRecord = (item) => ({
+    id: item.receipt_id,
+    date: item.date,
+    seller: sellers[item.seller_id],
+    customer: customers[item.customer_id],
+    total: item.total_amount,
+  });
 
   const getIndexes = async () => {
-    if (!sellers || !customers) {
-      [sellers, customers] = await Promise.all([
-        fetch(`${BASE_URL}/sellers`).then((res) => res.json()),
-        fetch(`${BASE_URL}/customers`).then((res) => res.json()),
-      ]);
-    }
-
-    return { sellers, customers };
+    return {
+      sellers,
+      customers,
+    };
   };
 
-  const getRecords = async (query, isUpdated = false) => {
-    const qs = new URLSearchParams(query);
-    const nextQuery = qs.toString();
+  const getRecords = async (query = {}) => {
+    let items = sourceData.purchase_records.map(mapRecord);
 
-    if (lastQuery === nextQuery && !isUpdated) {
-      return lastResult;
+    if (query.search) {
+      const search = query.search.toLowerCase();
+
+      items = items.filter((item) =>
+        Object.values(item).some((value) =>
+          String(value).toLowerCase().includes(search),
+        ),
+      );
     }
-    const response = await fetch(`${BASE_URL}/records?${nextQuery}`);
-    const records = await response.json();
 
-    lastQuery = nextQuery; // сохраняем для следующих запросов
-    lastResult = {
-      total: records.total,
-      items: mapRecords(records.items),
+    Object.entries(query).forEach(([key, value]) => {
+      if (!key.startsWith("filter[") || value === "") {
+        return;
+      }
+
+      const field = key.slice(7, -1);
+
+      if (field === "searchBySeller") {
+        items = items.filter((item) => item.seller === value);
+      }
+
+      if (field === "totalFrom") {
+        items = items.filter((item) => item.total >= Number(value));
+      }
+
+      if (field === "totalTo") {
+        items = items.filter((item) => item.total <= Number(value));
+      }
+    });
+
+    if (query.sort) {
+      const [field, order] = query.sort.split(":");
+      const direction = order === "desc" ? -1 : 1;
+
+      items.sort((a, b) => {
+        if (a[field] > b[field]) {
+          return direction;
+        }
+
+        if (a[field] < b[field]) {
+          return -direction;
+        }
+
+        return 0;
+      });
+    }
+
+    const total = items.length;
+    const limit = Number(query.limit ?? total);
+    const page = Number(query.page ?? 1);
+
+    const start = (page - 1) * limit;
+    const end = start + limit;
+
+    return {
+      total,
+      items: items.slice(start, end),
     };
-
-    return lastResult;
   };
 
   return {
