@@ -27,8 +27,9 @@ export function initData(sourceData) {
   const getRecords = async (query = {}) => {
     let items = sourceData.purchase_records.map(mapRecord);
 
+    // Поиск
     if (query.search) {
-      const search = query.search.toLowerCase();
+      const search = String(query.search).toLowerCase();
 
       items = items.filter((item) =>
         Object.values(item).some((value) =>
@@ -37,15 +38,31 @@ export function initData(sourceData) {
       );
     }
 
+    // Фильтрация
     Object.entries(query).forEach(([key, value]) => {
       if (!key.startsWith("filter[") || value === "") {
         return;
       }
 
       const field = key.slice(7, -1);
+      const filterValue = String(value).toLowerCase();
 
-      if (field === "searchBySeller") {
-        items = items.filter((item) => item.seller === value);
+      if (field === "date") {
+        items = items.filter((item) =>
+          item.date.toLowerCase().includes(filterValue),
+        );
+      }
+
+      if (field === "customer") {
+        items = items.filter((item) =>
+          item.customer.toLowerCase().includes(filterValue),
+        );
+      }
+
+      if (field === "seller" || field === "searchBySeller") {
+        items = items.filter((item) =>
+          item.seller.toLowerCase().includes(filterValue),
+        );
       }
 
       if (field === "totalFrom") {
@@ -57,9 +74,11 @@ export function initData(sourceData) {
       }
     });
 
+    // Сортировка
     if (query.sort) {
       const [field, order] = query.sort.split(":");
-      const direction = order === "desc" ? -1 : 1;
+
+      const direction = order === "down" || order === "desc" ? -1 : 1;
 
       items.sort((a, b) => {
         if (a[field] > b[field]) {
@@ -74,6 +93,7 @@ export function initData(sourceData) {
       });
     }
 
+    // Пагинация
     const total = items.length;
     const limit = Number(query.limit ?? total);
     const page = Number(query.page ?? 1);
